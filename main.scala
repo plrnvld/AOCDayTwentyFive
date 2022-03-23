@@ -10,20 +10,22 @@ object Main {
         board.addLines(lines)
 
         println(s"Board size is ${board.size()}")
-        println(s"${board.get(0, 0)} with index ${board.toIndex(0, 0)}")
-        println(s"${board.get(0, 1)} with index ${board.toIndex(0, 1)}")
-        println(s"${board.get(1, 1)} with index ${board.toIndex(1, 1)}")
-        println(s"${board.get(2, 1)} with index ${board.toIndex(2, 1)}")
-        println(s"${board.get(3, 1)} with index ${board.toIndex(3, 1)}")
-        println(s"${board.get(9, 8)} with index ${board.toIndex(9, 8)}")
+        println(s"${board.get(0, 0)} with index (0, 0)")
+        println(s"${board.get(0, 1)} with index (0, 1)")
+        println(s"${board.get(1, 1)} with index (1, 1)")
+        println(s"${board.get(2, 1)} with index (2, 1)")
+        println(s"${board.get(3, 1)} with index (3, 1)")
+        println(s"${board.get(9, 8)} with index (9, 8)")
     }
     
     class Board {
-        var boardMap: HashMap[Int, Boolean] = new HashMap()
+        var boardMap: HashMap[(Int, Int), Boolean] = new HashMap()
         var width = 0
+        var height = 0
 
         def addLines(lines: List[String]) = {
             width = lines(0).length
+            height = lines.length
             var x = 0
             var y = 0
             for (line <- lines) {
@@ -42,20 +44,27 @@ object Main {
             }
         }
 
-        def addCucumberRight(x: Int, y: Int) 
-            = addCucumber(true, x, y)
+        def addCucumberRight(x: Int, y: Int) = addCucumber(true, x, y)
 
-        def addCucumberDown(x: Int, y: Int) 
-            = addCucumber(false, x, y)
+        def addCucumberDown(x: Int, y: Int) = addCucumber(false, x, y)
 
         def addCucumber(movesRight: Boolean, x: Int, y: Int) 
-            = boardMap(toIndex(x, y)) = movesRight
+            = boardMap((x, y)) = movesRight
 
-        def toIndex(x: Int, y: Int): Int = y * width + x
+        def get(key: (Int, Int)): Option[Boolean] = boardMap.get(key)
 
-        def get(x: Int, y: Int): Option[Boolean] = boardMap.get(toIndex(x, y))
+        def nextMove(key: (Int, Int)): Option[(Int, Int)] = {
+            val (x, y) = key
+            val boardItem = get(key)
+            val nextKey = boardItem match {
+                case Some(movesRight) if movesRight  => ((x + 1) % width, y)
+                case Some(movesRight) if !movesRight => (x, (y + 1) % height)
+                case _ => throw new RuntimeException("n must be a multiple of 10")
+              }
 
-        def fromIndex(index: Int): (Int, Int) = (index % width, index / width)
+            // Incorrect
+            Some(nextKey)
+        }
 
         def size(): Int = boardMap.size
     }

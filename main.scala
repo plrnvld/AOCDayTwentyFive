@@ -1,27 +1,30 @@
 import scala.io.Source
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.ListBuffer
 
 object Main {
     def main(args: Array[String]): Unit = {
-        val lines = Source.fromFile("Example2.txt").getLines.toList
-        println(s"${lines.length} with first line length ${lines(0).length}")
-
+        val lines = Source.fromFile("Input.txt").getLines.toList
+        
         var board = new Board()
         board.addLines(lines)
 
-        println(s"Board size is ${board.size()}")
-        println(s"${board.get(0, 0)} with index (0, 0)")
-        println(s"${board.get(0, 1)} with index (0, 1)")
-        println(s"${board.get(1, 1)} with index (1, 1)")
-        println(s"${board.get(2, 1)} with index (2, 1)")
-        println(s"${board.get(3, 1)} with index (3, 1)")
-        println(s"${board.get(9, 8)} with index (9, 8)")
+        while (board.step()) {
+            // board.printBoard()
+        }
+        
+        println("Final board")
+        board.printBoard()
     }
+
+    type Key = (Int, Int)
+    type Move = (Boolean, Key, Key)
     
     class Board {
         var boardMap: HashMap[(Int, Int), Boolean] = new HashMap()
         var width = 0
         var height = 0
+        var stepNum = 0
 
         def addLines(lines: List[String]) = {
             width = lines(0).length
@@ -31,9 +34,9 @@ object Main {
             for (line <- lines) {
                 for (c <- line) {
                     if (c == '>') {
-                        addCucumberRight(x, y)
+                        boardMap((x, y)) = true
                     } else if (c == 'v') {
-                        addCucumberDown(x, y)
+                        boardMap((x, y)) = false
                     }
 
                     x += 1
@@ -44,28 +47,80 @@ object Main {
             }
         }
 
-        def addCucumberRight(x: Int, y: Int) = addCucumber(true, x, y)
+        def step(): Boolean = {
+            stepNum += 1
 
-        def addCucumberDown(x: Int, y: Int) = addCucumber(false, x, y)
+            println(s"Step $stepNum")
+            
+            var hasMoved = false
 
-        def addCucumber(movesRight: Boolean, x: Int, y: Int) 
-            = boardMap((x, y)) = movesRight
+            val (keysRight, keysDown) = availableKeys()
+            val movesRight = keysRight.map(nextMove).flatten
+            if (!movesRight.isEmpty)
+                hasMoved = true
+
+            movesRight.foreach { applyMove }
+
+            val movesDown = keysDown.map(nextMove).flatten
+            if (!movesDown.isEmpty)
+                hasMoved = true
+
+            movesDown.foreach { applyMove }
+
+            hasMoved
+        }
+
+        def applyMove(move: Move) = {
+            val (moveRight, key, nextKey) = move
+
+            boardMap.remove(key)
+            boardMap(nextKey) = moveRight
+        }
+
+        def availableKeys(): (Seq[Key], Seq[Key]) = {
+
+            var rightKeys = new ListBuffer[Key]()
+            var downKeys = new ListBuffer[Key]()
+            
+            for ((k, v) <- boardMap) 
+                if (v) rightKeys += k else downKeys += k
+
+            (rightKeys.toList, downKeys.toList)
+        }
 
         def get(key: (Int, Int)): Option[Boolean] = boardMap.get(key)
 
-        def nextMove(key: (Int, Int)): Option[(Int, Int)] = {
+        def isFree(key: Key): Boolean = get(key).isEmpty
+
+        def nextMove(key: Key): Option[Move] = {
             val (x, y) = key
             val boardItem = get(key)
-            val nextKey = boardItem match {
-                case Some(movesRight) if movesRight  => ((x + 1) % width, y)
-                case Some(movesRight) if !movesRight => (x, (y + 1) % height)
-                case _ => throw new RuntimeException("n must be a multiple of 10")
+            val (toRight, nextKey) = boardItem match {
+                case Some(movesRight) if movesRight  => (true, ((x + 1) % width, y))
+                case Some(movesRight) if !movesRight => (false, (x, (y + 1) % height))
+                case _ => throw new RuntimeException(s"No cucumber found on $key")
               }
 
-            // Incorrect
-            Some(nextKey)
+            Option.when(isFree(nextKey))((toRight, key, nextKey))
         }
 
         def size(): Int = boardMap.size
+
+        def printBoard() = {
+            for (y <- 0 until height) {
+                for (x <- 0 until width) {
+                    val item = get((x, y))
+                    val itemChar = item match {
+                        case Some(true) => '>'
+                        case Some(false) => 'v'
+                        case None => '.'
+                    }
+
+                    print(itemChar)                    
+                }
+
+                println()
+            }
+        }
     }
 }
